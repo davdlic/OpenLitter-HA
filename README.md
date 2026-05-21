@@ -64,7 +64,7 @@ The integration's config flow asks for:
 | `binary_sensor.openlitter_home_position` | sensor | Live state of the HOME magnet sensor. |
 | `binary_sensor.openlitter_dump_position` | sensor | Live state of the DUMP magnet sensor. |
 | `binary_sensor.openlitter_error` | problem | True while the device is in ERROR. |
-| `button.openlitter_cycle` / `empty` / `reset` / `pause` / `resume` / `tare` | buttons | Same actions as the Web UI / MQTT commands. |
+| `button.openlitter_cycle` / `empty` / `reset` / `home` / `pause` / `resume` / `tare` | buttons | Same actions as the Web UI / MQTT commands. `home` parks the globe (skips DUMP, still runs the sand shake on arrival). |
 | `update.openlitter_firmware` | update | Polls GitHub releases of the firmware repo; install button uses `/api/update`. |
 
 ---

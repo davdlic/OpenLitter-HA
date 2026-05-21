@@ -19,6 +19,7 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
     ButtonEntityDescription(key="cycle",  translation_key="cycle",  icon="mdi:play"),
     ButtonEntityDescription(key="empty",  translation_key="empty",  icon="mdi:delete"),
     ButtonEntityDescription(key="reset",  translation_key="reset",  icon="mdi:restart"),
+    ButtonEntityDescription(key="home",   translation_key="home",   icon="mdi:home-circle"),
     ButtonEntityDescription(key="pause",  translation_key="pause",  icon="mdi:pause"),
     ButtonEntityDescription(key="resume", translation_key="resume", icon="mdi:play-pause"),
     ButtonEntityDescription(key="tare",   translation_key="tare",   icon="mdi:scale-balance"),

@@ -101,7 +101,9 @@ class OpenLitterCard extends HTMLElement {
           <button class="primary" data-cmd="cycle">Cycle</button>
           <button data-cmd="empty">Empty</button>
           <button data-cmd="reset">Reset</button>
+          <button data-cmd="home">Home</button>
           <button data-cmd="pause">Pause</button>
+          <button data-cmd="resume">Resume</button>
         </div>
       </ha-card>
     `;

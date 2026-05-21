@@ -8,7 +8,7 @@
   "issue_tracker": "https://github.com/davdlic/OpenLitter-HA/issues",
   "after_dependencies": ["http", "frontend", "mqtt"],
   "requirements": ["aiohttp>=3.8"],
-  "version": "0.1.3",
+  "version": "0.1.4",
   "integration_type": "device",
   "zeroconf": [
     {

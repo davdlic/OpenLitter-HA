@@ -37,6 +37,7 @@
       "cycle":  { "name": "Cycle" },
       "empty":  { "name": "Empty" },
       "reset":  { "name": "Reset" },
+      "home":   { "name": "Home" },
       "pause":  { "name": "Pause" },
       "resume": { "name": "Resume" },
       "tare":   { "name": "Tare weight" }
