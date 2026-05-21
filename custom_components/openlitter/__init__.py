@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import logging
+import os
 
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http.static import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
@@ -21,9 +24,17 @@ PLATFORMS: list[Platform] = [
     Platform.UPDATE,
 ]
 
+FRONTEND_URL_BASE = f"/{DOMAIN}-frontend"
+FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "frontend")
+CARD_FILENAME = "openlitter-card.js"
+CARD_VERSION = "0.1.0"  # bump on Lovelace card updates to bust browser cache
+_FRONTEND_FLAG = f"{DOMAIN}_frontend_registered"
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up OpenLitter from a config entry."""
+    await _async_register_frontend(hass)
+
     session = aiohttp_client.async_get_clientsession(hass)
     api = OpenLitterApi(
         session,
@@ -37,6 +48,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
+
+
+async def _async_register_frontend(hass: HomeAssistant) -> None:
+    """Serve the bundled Lovelace card and tell HA's frontend to load it.
+
+    Done once at the first config entry setup. The user therefore doesn't
+    need to add a Lovelace resource by hand — opening any dashboard
+    automatically picks up `custom:openlitter-card`."""
+    if hass.data.get(_FRONTEND_FLAG):
+        return
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(FRONTEND_URL_BASE, FRONTEND_DIR, cache_headers=False)]
+    )
+    add_extra_js_url(
+        hass, f"{FRONTEND_URL_BASE}/{CARD_FILENAME}?v={CARD_VERSION}"
+    )
+    hass.data[_FRONTEND_FLAG] = True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

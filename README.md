@@ -71,33 +71,32 @@ The integration's config flow asks for:
 
 ## Lovelace card
 
-The repo ships an `openlitter-card.js` ES module in `www/`. Add it as a Lovelace resource:
-
-1. **Settings → Dashboards → ⋮ → Resources → Add resource**
-2. URL: `/hacsfiles/openlitter-ha/openlitter-card.js` (if installed via HACS) or `/local/openlitter-card.js` (if you copied it to `www/`).
-3. Type: **JavaScript Module**
-4. Then in any dashboard:
+The card is **bundled with the integration** — no manual Lovelace Resource entry needed. When you complete the config flow, the integration registers `/openlitter-frontend/openlitter-card.js` with HA's frontend, and any dashboard can immediately use:
 
 ```yaml
 type: custom:openlitter-card
 entity: sensor.openlitter_state
 ```
 
-The card pulls the rest (sensors, buttons, history) automatically from the integration's device.
+The card reads weight, buttons, sensor pills, and history automatically from the device's other entities (it picks them up by the shared name prefix).
+
+If HA shows *Custom element doesn't exist: openlitter-card* right after install, hard-refresh the browser (Ctrl+F5) — the JS module is cached aggressively. The integration adds a `?v=` query string on updates so subsequent versions auto-refetch.
 
 ---
 
 ## Roadmap
 
 - [x] Repository skeleton + HACS metadata
-- [ ] REST + WebSocket API client
-- [ ] DataUpdateCoordinator
-- [ ] Config flow (zeroconf + manual + reauth)
-- [ ] Sensor / binary_sensor / button platforms
-- [ ] Update entity (GitHub releases → `/api/update`)
-- [ ] MQTT bridge (auto-detect HA's MQTT integration)
-- [ ] Lovelace card (rotating globe + controls + history)
-- [ ] hassfest + HACS validation CI
+- [x] REST + WebSocket API client
+- [x] DataUpdateCoordinator
+- [x] Config flow (zeroconf + manual)
+- [x] Sensor / binary_sensor / button platforms
+- [x] Update entity (GitHub releases → `/api/update`)
+- [x] Lovelace card bundled with the integration (no manual Resource entry)
+- [x] hassfest + HACS validation CI
+- [ ] MQTT bridge (auto-detect HA's MQTT integration) — currently REST/WS only
+- [ ] Brand assets (icon/logo on HACS) — PR to home-assistant/brands pending
+- [ ] Config-flow reauth on connection failure
 - [ ] First HACS release tag
 
 ---

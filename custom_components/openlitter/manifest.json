@@ -3,12 +3,12 @@
   "name": "OpenLitter",
   "codeowners": ["@davdlic"],
   "config_flow": true,
-  "documentation": "https://github.com/davdlic/openlitter-ha",
+  "documentation": "https://github.com/davdlic/OpenLitter-HA",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/davdlic/openlitter-ha/issues",
-  "after_dependencies": ["mqtt"],
+  "issue_tracker": "https://github.com/davdlic/OpenLitter-HA/issues",
+  "after_dependencies": ["http", "frontend", "mqtt"],
   "requirements": ["aiohttp>=3.8"],
-  "version": "0.1.0",
+  "version": "0.1.1",
   "integration_type": "device",
   "zeroconf": [
     {
