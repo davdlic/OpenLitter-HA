@@ -33,13 +33,11 @@ BINARY_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
         key="home_position",
         translation_key="home_position",
         icon="mdi:home-circle",
-        entity_registry_enabled_default=False,
     ),
     BinarySensorEntityDescription(
         key="dump_position",
         translation_key="dump_position",
         icon="mdi:delete-empty",
-        entity_registry_enabled_default=False,
     ),
     BinarySensorEntityDescription(
         key="error",
