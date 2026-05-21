@@ -5,7 +5,6 @@ import logging
 import os
 
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http.static import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
@@ -58,9 +57,19 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     automatically picks up `custom:openlitter-card`."""
     if hass.data.get(_FRONTEND_FLAG):
         return
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(FRONTEND_URL_BASE, FRONTEND_DIR, cache_headers=False)]
-    )
+    # Prefer the modern async_register_static_paths + StaticPathConfig
+    # (HA Core 2024.7+). Fall back to the legacy sync register_static_path
+    # so the integration loads on older supported versions too.
+    try:
+        from homeassistant.components.http import StaticPathConfig  # noqa: PLC0415
+
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(FRONTEND_URL_BASE, FRONTEND_DIR, cache_headers=False)]
+        )
+    except ImportError:
+        hass.http.register_static_path(
+            FRONTEND_URL_BASE, FRONTEND_DIR, cache_headers=False
+        )
     add_extra_js_url(
         hass, f"{FRONTEND_URL_BASE}/{CARD_FILENAME}?v={CARD_VERSION}"
     )
