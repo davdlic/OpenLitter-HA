@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local-only files (kept out of the repo on purpose)
+local_not_comit/

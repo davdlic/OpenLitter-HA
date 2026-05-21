@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "OpenLitter",
+        "description": "Connect to your OpenLitter device. The host can be a hostname (e.g. `openlitter.local`) or an IP address.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "ota_password": "OTA password (optional, only needed for firmware updates)",
+          "use_mqtt": "Use MQTT subscription on top of REST (only if Home Assistant's MQTT integration is configured)",
+          "mqtt_topic_base": "MQTT topic base"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Couldn't reach the device at that host. Check the IP / hostname and that the device is on the network."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "state":        { "name": "State" },
+      "weight":       { "name": "Weight" },
+      "cycle_count":  { "name": "Cycle count" },
+      "uptime":       { "name": "Uptime" }
+    },
+    "binary_sensor": {
+      "cat_present":   { "name": "Cat present" },
+      "home_position": { "name": "Home position sensor" },
+      "dump_position": { "name": "Dump position sensor" },
+      "error":         { "name": "Error" }
+    },
+    "button": {
+      "cycle":  { "name": "Cycle" },
+      "empty":  { "name": "Empty" },
+      "reset":  { "name": "Reset" },
+      "pause":  { "name": "Pause" },
+      "resume": { "name": "Resume" },
+      "tare":   { "name": "Tare weight" }
+    },
+    "update": {
+      "firmware": { "name": "Firmware" }
+    }
+  }
+}
