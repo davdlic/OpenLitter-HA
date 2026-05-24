@@ -24,6 +24,7 @@ GITHUB_RELEASES_URL = (
 )
 FIRMWARE_ASSET_PREFIX = "openlitter-"
 FIRMWARE_ASSET_SUFFIX = "-firmware.bin"
+LITTLEFS_ASSET_SUFFIX = "-littlefs.bin"
 
 # /api/status fields we surface as state attributes / entity values
 ATTR_STATE = "state"
