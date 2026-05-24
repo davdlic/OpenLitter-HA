@@ -24,8 +24,12 @@ jobs:
         with:
           category: integration
           # Skip these checks while we're still pre-1.0:
-          #   brands — PR to home-assistant/brands is deferred (logos
-          #            generated under ../brands-pr/, will submit later).
-          #   topics — repo topics are managed via the GitHub UI; skipping
-          #            keeps CI green if they're ever removed by accident.
-          ignore: "brands topics"
+          #   brands       — PR to home-assistant/brands is deferred
+          #                  (logos generated under ../brands-pr/, will
+          #                  submit later).
+          #   topics       — repo topics are managed via the GitHub UI;
+          #                  skipping keeps CI green if they're ever
+          #                  removed by accident.
+          #   description  — same story as topics, the About blurb is set
+          #                  via the GitHub UI on the repo page.
+          ignore: "brands topics description"
