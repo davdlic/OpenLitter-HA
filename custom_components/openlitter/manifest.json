@@ -1,15 +1,15 @@
 {
   "domain": "openlitter",
   "name": "OpenLitter",
+  "after_dependencies": ["http", "frontend", "mqtt"],
   "codeowners": ["@davdlic"],
   "config_flow": true,
   "documentation": "https://github.com/davdlic/OpenLitter-HA",
+  "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/davdlic/OpenLitter-HA/issues",
-  "after_dependencies": ["http", "frontend", "mqtt"],
   "requirements": [],
   "version": "0.1.7",
-  "integration_type": "device",
   "zeroconf": [
     {
       "type": "_http._tcp.local.",
