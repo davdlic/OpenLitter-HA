@@ -26,7 +26,7 @@ PLATFORMS: list[Platform] = [
 FRONTEND_URL_BASE = f"/{DOMAIN}-frontend"
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "frontend")
 CARD_FILENAME = "openlitter-card.js"
-CARD_VERSION = "0.1.6"  # bump on Lovelace card updates to bust browser cache
+CARD_VERSION = "0.1.8"  # bump on Lovelace card updates to bust browser cache
 _FRONTEND_FLAG = f"{DOMAIN}_frontend_registered"
 
 

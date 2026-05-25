@@ -29,8 +29,8 @@
     },
     "binary_sensor": {
       "cat_present":   { "name": "Cat present" },
-      "home_position": { "name": "Home position sensor" },
-      "dump_position": { "name": "Dump position sensor" },
+      "home_position": { "name": "Home position" },
+      "dump_position": { "name": "Dump position" },
       "error":         { "name": "Error" }
     },
     "button": {
@@ -40,7 +40,7 @@
       "home":   { "name": "Home" },
       "pause":  { "name": "Pause" },
       "resume": { "name": "Resume" },
-      "tare":   { "name": "Tare weight" }
+      "tare":   { "name": "Tare" }
     },
     "update": {
       "firmware": { "name": "Firmware" }

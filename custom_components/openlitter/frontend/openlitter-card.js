@@ -210,9 +210,24 @@ class OpenLitterCard extends HTMLElement {
     globe.classList.toggle('error', raw === 'ERROR');
 
     // Resolve sibling entities from the state entity's name prefix.
+    // Be fuzzy: HA's entity_id slugifier turns "Home position sensor"
+    // into `home_position_sensor`, so a strict suffix match would miss
+    // entities whose friendly name added extra words. Match on
+    // *contains the keyword* among entities sharing the base prefix.
     const base = this._config.entity.split('.')[1].replace('_state', '');
-    const pick = (suffix) => hass.states[`sensor.${base}_${suffix}`];
-    const pickBin = (suffix) => hass.states[`binary_sensor.${base}_${suffix}`];
+    const findFirst = (domain, keyword) => {
+      const prefix = `${domain}.${base}_`;
+      for (const eid in hass.states) {
+        if (eid.startsWith(prefix) && eid.indexOf(keyword) !== -1) {
+          return hass.states[eid];
+        }
+      }
+      // Fallback to the strict suffix form too, just in case HA gave
+      // the entity an entirely different prefix (renamed by the user).
+      return hass.states[`${domain}.${base}_${keyword}`];
+    };
+    const pick    = (keyword) => findFirst('sensor', keyword);
+    const pickBin = (keyword) => findFirst('binary_sensor', keyword);
 
     // Cycles + last
     const cycles = pick('cycle_count');
