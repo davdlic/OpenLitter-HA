@@ -11,13 +11,37 @@
           "use_mqtt": "Use MQTT subscription on top of REST (only if Home Assistant's MQTT integration is configured)",
           "mqtt_topic_base": "MQTT topic base"
         }
+      },
+      "reconfigure": {
+        "title": "OpenLitter — reconfigure",
+        "description": "Update the connection settings for this device. The new values take effect immediately after Submit (the entry reloads).",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "ota_password": "OTA password",
+          "use_mqtt": "Use MQTT subscription on top of REST",
+          "mqtt_topic_base": "MQTT topic base"
+        }
+      },
+      "reauth_confirm": {
+        "title": "OpenLitter — reauthenticate",
+        "description": "The integration has been unable to reach the device for a while. The host may have changed (e.g. a new DHCP lease). Confirm or update the connection settings.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "ota_password": "OTA password",
+          "use_mqtt": "Use MQTT subscription on top of REST",
+          "mqtt_topic_base": "MQTT topic base"
+        }
       }
     },
     "error": {
       "cannot_connect": "Couldn't reach the device at that host. Check the IP / hostname and that the device is on the network."
     },
     "abort": {
-      "already_configured": "This device is already configured."
+      "already_configured": "This device is already configured.",
+      "reauth_successful": "Reauthentication successful — connection restored.",
+      "reconfigure_successful": "Configuration updated."
     }
   },
   "entity": {

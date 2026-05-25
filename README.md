@@ -131,8 +131,7 @@ What's on the card:
 - [x] First HACS release tag
 - [x] MQTT bridge — subscribes to firmware topics when HA's MQTT integration is configured
 - [x] Brand assets bundled in `custom_components/openlitter/brand/` (HA 2026.3+ serves these via its proxy; no upstream PR needed)
-- [ ] Config-flow reauth on connection failure
-- [ ] Translations beyond English
+- [x] Config-flow reauth + reconfigure on connection failure
 
 ---
 

@@ -21,10 +21,16 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import OpenLitterApi, OpenLitterApiError
 from .const import DEFAULT_POLL_INTERVAL_SECONDS, DOMAIN
+
+# Number of consecutive REST poll failures before we ask HA to surface a
+# Reauthenticate notification. Each poll is DEFAULT_POLL_INTERVAL_SECONDS
+# apart, so 12 ticks at 5 s = 1 min of consistent failure.
+REAUTH_AFTER_CONSECUTIVE_FAILURES = 12
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +54,7 @@ class OpenLitterCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api = api
         self._history: list[dict[str, Any]] = []
         self._latest: dict[str, Any] = {}
+        self._consecutive_failures = 0
 
     @property
     def history(self) -> list[dict[str, Any]]:
@@ -60,7 +67,18 @@ class OpenLitterCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             status = await self.api.get_status()
         except OpenLitterApiError as err:
+            self._consecutive_failures += 1
+            # After ~1 minute of consistent failures (REAUTH_AFTER_CONSECUTIVE_FAILURES
+            # ticks), surface a Reauthenticate notification so the user can
+            # update the host without having to remove + re-add the
+            # integration. Common cause: device IP changed (DHCP lease).
+            if self._consecutive_failures >= REAUTH_AFTER_CONSECUTIVE_FAILURES:
+                raise ConfigEntryAuthFailed(
+                    f"Device unreachable after {self._consecutive_failures} attempts: {err}"
+                ) from err
             raise UpdateFailed(str(err)) from err
+        # Reset the failure counter as soon as we get a successful poll.
+        self._consecutive_failures = 0
         # History is part of the broadcast payload, but if not, fetch
         # separately. Cheap on the device.
         if "history" in status:

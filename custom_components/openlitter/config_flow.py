@@ -1,13 +1,13 @@
-"""Config flow for OpenLitter — zeroconf discovery + manual entry."""
+"""Config flow for OpenLitter — zeroconf discovery + manual entry + reconfigure."""
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Mapping
 
 import voluptuous as vol
 
 from homeassistant.components import zeroconf
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.helpers import aiohttp_client
 
@@ -90,7 +90,60 @@ class OpenLitterConfigFlow(ConfigFlow, domain=DOMAIN):
         self.context["title_placeholders"] = {"name": host}
         return await self.async_step_user()
 
+    # --- Reconfigure (Settings -> Devices & Services -> Configure) --
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Let the user update host / port / OTA password / MQTT options
+        without removing and re-adding the integration (and losing
+        dashboards / automations that reference its entity ids)."""
+        entry = self._get_reconfigure_entry()
+        return await self._async_update_step(entry, user_input, "reconfigure")
+
+    # --- Reauth (triggered when the coordinator can't reach the host) -
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Entry point when HA marks the entry as needing reauthentication."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        entry = self._get_reauth_entry()
+        return await self._async_update_step(entry, user_input, "reauth_confirm")
+
     # --- helpers -----------------------------------------------------
+
+    async def _async_update_step(
+        self,
+        entry: ConfigEntry,
+        user_input: dict[str, Any] | None,
+        step_id: str,
+    ) -> ConfigFlowResult:
+        """Shared body for reconfigure and reauth_confirm.
+
+        Shows the form pre-filled with the entry's current data, validates
+        the new values by hitting /api/status, then updates the entry and
+        triggers a reload so the new settings take effect immediately."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                await self._validate(user_input)
+            except OpenLitterApiError as err:
+                _LOGGER.warning("%s validation failed: %s", step_id, err)
+                errors["base"] = "cannot_connect"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates=user_input
+                )
+        return self.async_show_form(
+            step_id=step_id,
+            data_schema=_user_schema(user_input or dict(entry.data)),
+            errors=errors,
+        )
 
     async def _validate(self, data: dict[str, Any]) -> dict[str, Any]:
         session = aiohttp_client.async_get_clientsession(self.hass)
