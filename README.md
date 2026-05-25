@@ -13,8 +13,8 @@ Licensed under the GNU General Public License v3.0 - see LICENSE
 
 Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic/OpenLitter), the open source ESP32 firmware that replaces the original board of a Litter Robot 1 / 2 / 3.
 
-> [!WARNING]
-> **Pre-1.0.** Entity ids, attributes and the Lovelace card's structure may still change between minor versions. Tracks firmware releases on [davdlic/OpenLitter](https://github.com/davdlic/OpenLitter); the latest tested combination is documented in [Compatibility](#compatibility).
+> [!NOTE]
+> Stable from **v1.0.0** onwards — entity ids, MQTT topics, bus event names and the Lovelace card's options are now considered public contract. Tracks firmware releases on [davdlic/OpenLitter](https://github.com/davdlic/OpenLitter); see [Compatibility](#compatibility) for the matrix.
 
 ---
 
@@ -46,6 +46,7 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 
 | OpenLitter-HA | Firmware  | Home Assistant Core | Notes |
 |---------------|-----------|---------------------|-------|
+| 1.0.x         | ≥ v1.0.0  | ≥ 2024.4            | First stable release. API frozen — entity ids, events, MQTT topics are public contract. |
 | 0.3.x         | ≥ v0.4.1  | ≥ 2024.4            | Logbook events, diagnostics, reauth + reconfigure |
 | 0.2.x         | ≥ v0.4.1  | ≥ 2024.4            | MQTT bridge, brand assets bundled (HA 2026.3+ proxies them) |
 | 0.1.x         | ≥ v0.4.0  | ≥ 2024.4            | REST + WS only, brand placeholder |
@@ -266,6 +267,12 @@ Yes — see [Manual installation](#manual). HACS is just the smoothest update pa
 PRs welcome. Open an issue for anything that looks wrong — please attach a diagnostics JSON (see [Diagnostics](#diagnostics)) when reporting bugs, it saves a lot of back-and-forth.
 
 For changes that span both firmware and the integration, please reference the relevant firmware version in the PR description so the [Compatibility](#compatibility) table can be kept honest.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the per-release history.
 
 ---
 
