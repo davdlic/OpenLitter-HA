@@ -1,24 +1,39 @@
 <!--
-openlitter-ha - Home Assistant integration + Lovelace card for OpenLitter
+OpenLitter-HA - Home Assistant integration + Lovelace card for OpenLitter
 Copyright (C) 2024 David Lopes (https://github.com/davdlic)
 Licensed under the GNU General Public License v3.0 - see LICENSE
 -->
 
 # OpenLitter — Home Assistant integration
 
+[![Validate](https://github.com/davdlic/OpenLitter-HA/actions/workflows/validate.yml/badge.svg)](https://github.com/davdlic/OpenLitter-HA/actions/workflows/validate.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Home Assistant](https://img.shields.io/badge/HA-2024.4%2B-blue.svg)](https://www.home-assistant.io/)
+
 Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic/OpenLitter), the open source ESP32 firmware that replaces the original board of a Litter Robot 1 / 2 / 3.
 
-> ⚠️ Pre-1.0. APIs and entity ids may change. Tracks the latest OpenLitter firmware release on `main`.
+> ⚠️ **Pre-1.0.** Entity ids, attributes and the Lovelace card's structure may still change between minor versions. Tracks firmware releases on [davdlic/OpenLitter](https://github.com/davdlic/OpenLitter); the latest tested combination is documented in [Compatibility](#compatibility).
 
 ---
 
 ## What you get
 
-- **Local-push integration** — talks REST + WebSocket to the device directly, no broker needed. If you happen to have MQTT configured, the integration uses it transparently for lower latency.
-- **Auto-discovery** via mDNS — HA finds `openlitter.local` on your LAN without you typing an IP.
-- **Rich entities**: state with friendly label and full history, weight, cycle count, HOME/DUMP/CAT raw sensor states, cat-present binary sensor, manual command buttons, firmware-update entity.
-- **Native firmware updates** — HA shows "OpenLitter X.Y.Z available" and installs via the device's web update endpoint. No PC, no PlatformIO.
-- **Lovelace card** with rotating-globe animation, controls, and recent-cycles list.
+- **Local push, no broker needed** — talks REST + WebSocket to the device directly. Status updates land in HA within ~500 ms.
+- **Auto-discovery via mDNS** — HA finds `openlitter.local` on your LAN without you typing an IP. Just accept the discovery toast.
+- **Rich entities** — state with a friendly label and the full history array as an attribute, weight, cycle count, raw HOME / DUMP / CAT sensor states, error binary sensor, six command buttons, and an Update entity.
+- **One-click firmware updates from HA** — the `update.openlitter_firmware` entity polls the firmware repo's GitHub releases, downloads both `firmware.bin` and `littlefs.bin`, and flashes them in sequence via the device's web update endpoint. No PC, no PlatformIO, no losing the Web UI.
+- **Bundled Lovelace card** — `custom:openlitter-card` is auto-registered when the integration loads; no manual Resource entry. Rotating globe SVG, state badge, three live sensor pills, recent-cycle stats, and the six command buttons in one card.
+
+---
+
+## Compatibility
+
+| OpenLitter-HA | Firmware  | Home Assistant Core |
+|---------------|-----------|---------------------|
+| 0.1.x         | ≥ v0.4.0  | ≥ 2024.4            |
+
+Older firmware (v0.3.x or earlier) may work but is untested. The `update.openlitter_firmware` install button only ships full updates from v0.4.0 onwards (separate `/api/update?type=fs` endpoint).
 
 ---
 
@@ -26,81 +41,99 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 
 ### Via HACS (recommended)
 
-1. In HA: **HACS → Integrations → ⋮ → Custom repositories**
-2. URL: `https://github.com/davdlic/openlitter-ha`, Category: **Integration**
-3. Install **OpenLitter**
-4. Restart Home Assistant
-5. **Settings → Devices & Services → Add Integration → OpenLitter** (or just accept the auto-discovery toast)
+1. In HA: **HACS → ⋮ → Custom repositories**
+2. Repository URL: `https://github.com/davdlic/OpenLitter-HA`, Category: **Integration**
+3. Click **Add**, find **OpenLitter** in the list and **Download** it.
+4. Restart Home Assistant.
+5. Accept the auto-discovery toast, or go to **Settings → Devices & Services → Add Integration → OpenLitter** and enter the host.
 
-For the Lovelace card, see [Lovelace card](#lovelace-card) below.
+The Lovelace card is included — see [Lovelace card](#lovelace-card) below for usage.
 
 ### Manual
 
-Copy `custom_components/openlitter/` into your HA config's `custom_components/` directory, restart HA, and add the integration.
+```bash
+# From the HA config directory:
+cd custom_components
+git clone https://github.com/davdlic/OpenLitter-HA.git openlitter-ha
+ln -s openlitter-ha/custom_components/openlitter openlitter
+```
+
+Restart HA, then add the integration as above. (Or just copy `custom_components/openlitter/` from this repo into your `custom_components/` directory.)
 
 ---
 
 ## Configuration
 
-The integration's config flow asks for:
+The config flow asks for:
 
-| Field | Required | Notes |
-|---|---|---|
-| Host | yes | `openlitter.local` or `192.168.x.x`. Auto-filled when discovered via mDNS. |
-| OTA password | no | Only needed to use the firmware-update entity. Default in OpenLitter is `openlitter`. |
-| Use MQTT (if available) | no | If you already have HA's MQTT integration configured AND the device is publishing to a broker, ticking this enables MQTT subscription on top of REST/WS. |
+| Field        | Required | Notes |
+|--------------|----------|-------|
+| Host         | yes      | `openlitter.local` or `192.168.x.x`. Auto-filled when discovered via mDNS. |
+| Port         | yes      | Defaults to 80; only change if you reconfigured the firmware. |
+| OTA password | no       | Only used by the firmware-update entity to authenticate the install POST. Default in OpenLitter is `openlitter`. |
+| Use MQTT     | no       | Reserved for the planned MQTT bridge (see [Roadmap](#roadmap)). Currently ignored — the integration talks REST + WS regardless. |
+
+Nothing else to set up. The integration polls `/api/status` every 5 s as a safety net, but the primary update path is the WebSocket `/ws` push from the device, which lands in HA within ~500 ms of any state change on the firmware side.
 
 ---
 
 ## Entities
 
-| Entity | Type | Notes |
-|---|---|---|
-| `sensor.openlitter_state` | sensor | Friendly label (`Ready`, `Cleaning`, `Dumping`…). Attributes: raw state, full history array. |
-| `sensor.openlitter_weight` | sensor (kg) | Only present if weight sensor enabled on the device. |
-| `sensor.openlitter_cycle_count` | sensor | Total cycles since last reset. |
-| `sensor.openlitter_uptime` | sensor (s) | Device uptime. |
-| `binary_sensor.openlitter_cat_present` | occupancy | True while a cat is detected. |
-| `binary_sensor.openlitter_home_position` | sensor | Live state of the HOME magnet sensor. |
-| `binary_sensor.openlitter_dump_position` | sensor | Live state of the DUMP magnet sensor. |
-| `binary_sensor.openlitter_error` | problem | True while the device is in ERROR. |
-| `button.openlitter_cycle` / `empty` / `reset` / `home` / `pause` / `resume` / `tare` | buttons | Same actions as the Web UI / MQTT commands. `home` parks the globe (skips DUMP, still runs the sand shake on arrival). |
-| `update.openlitter_firmware` | update | Polls GitHub releases of the firmware repo; install button uses `/api/update`. |
+| Entity                                                      | Type                | Notes |
+|-------------------------------------------------------------|---------------------|-------|
+| `sensor.openlitter_state`                                   | sensor              | Friendly label (`Ready`, `Cleaning`, `Dumping`, `Leveling`, …). Attributes: `raw_state` (the internal enum name), `last_cycle` (Unix ts), `reset_in_progress`, full `history` array. |
+| `sensor.openlitter_weight`                                  | sensor (kg)         | Only published when the firmware reports the weight sensor enabled. |
+| `sensor.openlitter_cycle_count`                             | sensor              | Total completed cleaning cycles since the last counter reset. |
+| `sensor.openlitter_uptime`                                  | sensor (s)          | Device uptime in seconds. Disabled by default — enable in the entity registry if you want to chart it. |
+| `binary_sensor.openlitter_cat_present`                      | occupancy           | True while the cat is being detected (any of the configured sensors). |
+| `binary_sensor.openlitter_home_position`                    | sensor              | Live state of the HOME magnet sensor. Useful to verify wiring without USB serial. |
+| `binary_sensor.openlitter_dump_position`                    | sensor              | Live state of the DUMP magnet sensor. |
+| `binary_sensor.openlitter_error`                            | problem             | True while the device is in the ERROR state. |
+| `button.openlitter_cycle` / `empty` / `reset` / `home` / `pause` / `resume` / `tare` | buttons | Mirror the Web UI / MQTT command list. `home` parks the globe (skips the DUMP phase, still runs the sand shake on arrival). `tare` only appears if the weight sensor is enabled. |
+| `update.openlitter_firmware`                                | update              | Polls GitHub releases of [davdlic/OpenLitter](https://github.com/davdlic/OpenLitter); the Install button downloads and flashes both `firmware.bin` and `littlefs.bin` in sequence. |
 
 ---
 
 ## Lovelace card
 
-The card is **bundled with the integration** — no manual Lovelace Resource entry needed. When you complete the config flow, the integration registers `/openlitter-frontend/openlitter-card.js` with HA's frontend, and any dashboard can immediately use:
+The card is **bundled with the integration** — no manual Lovelace Resource entry needed. When the config flow finishes, the integration registers `/openlitter-frontend/openlitter-card.js` with HA's frontend, and any dashboard can immediately use:
 
 ```yaml
 type: custom:openlitter-card
 entity: sensor.openlitter_state
 ```
 
-The card reads weight, buttons, sensor pills, and history automatically from the device's other entities (it picks them up by the shared name prefix).
+The card resolves weight, buttons, sensor pills and `last_cycle` from the device's other entities automatically by name prefix — no extra options needed.
 
-If HA shows *Custom element doesn't exist: openlitter-card* right after install, hard-refresh the browser (Ctrl+F5) — the JS module is cached aggressively. The integration adds a `?v=` query string on updates so subsequent versions auto-refetch.
+What's on the card:
+
+- **Rotating globe SVG** with state badge and a one-line description, mirroring the device's Web UI.
+- **Stats row** — total cycles, last cycle (as a relative time like `5m ago`), weight (only shown when the sensor is enabled).
+- **Sensor pills** — `HOME`, `DUMP`, `CAT` light green when active. Rotate the globe by hand and watch the pills update in real time; this is the fastest way to validate wiring.
+- **Six command buttons** in a 3 × 2 grid (drops to 2 × 3 on mobile). Each button is disabled when the current device state wouldn't accept it.
+
+**Troubleshooting**: if HA shows *Custom element doesn't exist: openlitter-card* right after install, hard-refresh the browser (`Ctrl + F5`). The JS module is cached aggressively. The integration appends a `?v=…` query on updates so subsequent versions auto-refetch.
 
 ---
 
 ## Roadmap
 
 - [x] Repository skeleton + HACS metadata
-- [x] REST + WebSocket API client
-- [x] DataUpdateCoordinator
-- [x] Config flow (zeroconf + manual)
-- [x] Sensor / binary_sensor / button platforms
-- [x] Update entity (GitHub releases → `/api/update`)
-- [x] Lovelace card bundled with the integration (no manual Resource entry)
+- [x] REST + WebSocket API client (`api.py`)
+- [x] DataUpdateCoordinator with WS push + 5 s REST poll fallback
+- [x] Config flow: zeroconf discovery + manual entry
+- [x] Sensor / binary_sensor / button / update platforms
+- [x] Update entity flashes **both** `firmware.bin` and `littlefs.bin` from each release
+- [x] Lovelace card bundled — no manual Resource registration step
 - [x] hassfest + HACS validation CI
-- [ ] MQTT bridge (auto-detect HA's MQTT integration) — currently REST/WS only
-- [ ] Brand assets (icon/logo on HACS) — PR to home-assistant/brands pending
+- [x] First HACS release tag
+- [ ] Brand assets (icon/logo on the HACS card) — PR to home-assistant/brands pending
+- [ ] MQTT bridge — auto-detect HA's MQTT integration and use it for low-latency updates alongside REST/WS
 - [ ] Config-flow reauth on connection failure
-- [ ] First HACS release tag
+- [ ] Translations beyond English
 
 ---
 
 ## License
 
-GPL v3 — see [LICENSE](LICENSE). Same license as OpenLitter itself.
+GPL v3 — see [LICENSE](LICENSE). Same license as the OpenLitter firmware.
