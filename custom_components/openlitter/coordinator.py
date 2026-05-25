@@ -96,6 +96,18 @@ class OpenLitterCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._merge(status)
         self.async_set_updated_data(self._latest)
 
+    @callback
+    def handle_mqtt_update(self, partial: dict[str, Any]) -> None:
+        """Called by the MQTT bridge for each individual topic update.
+
+        Merges the partial payload into the cached status and emits a
+        coordinator update so entities re-render. Last-write-wins across
+        REST/WS/MQTT, so whichever transport is freshest sets the value."""
+        if not partial:
+            return
+        self._merge(partial)
+        self.async_set_updated_data(self._latest)
+
     # --- lifecycle ---------------------------------------------------
 
     async def async_start_ws(self) -> None:

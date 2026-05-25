@@ -19,7 +19,7 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 
 ## What you get
 
-- **Local push, no broker needed** — talks REST + WebSocket to the device directly. Status updates land in HA within ~500 ms.
+- **Local push, no broker needed** — talks REST + WebSocket to the device directly. Status updates land in HA within ~500 ms. If you also tick **Use MQTT** in the config flow, the integration subscribes to the firmware's MQTT topics on top, so HA gets updates over whichever transport is freshest.
 - **Auto-discovery via mDNS** — HA finds `openlitter.local` on your LAN without you typing an IP. Just accept the discovery toast.
 - **Rich entities** — state with a friendly label and the full history array as an attribute, weight, cycle count, raw HOME / DUMP / CAT sensor states, error binary sensor, six command buttons, and an Update entity.
 - **One-click firmware updates from HA** — the `update.openlitter_firmware` entity polls the firmware repo's GitHub releases, downloads both `firmware.bin` and `littlefs.bin`, and flashes them in sequence via the device's web update endpoint. No PC, no PlatformIO, no losing the Web UI.
@@ -71,7 +71,8 @@ The config flow asks for:
 | Host         | yes      | `openlitter.local` or `192.168.x.x`. Auto-filled when discovered via mDNS. |
 | Port         | yes      | Defaults to 80; only change if you reconfigured the firmware. |
 | OTA password | no       | Only used by the firmware-update entity to authenticate the install POST. Default in OpenLitter is `openlitter`. |
-| Use MQTT     | no       | Reserved for the planned MQTT bridge (see [Roadmap](#roadmap)). Currently ignored — the integration talks REST + WS regardless. |
+| Use MQTT     | no       | Tick if HA's MQTT integration is configured and the firmware is publishing to a broker. The integration then also subscribes to `{topic_base}/*` and the coordinator merges MQTT updates with the REST + WS feed (last-write-wins). Pure bonus path; everything still works with this off. |
+| MQTT topic base | no    | Defaults to `openlitter`. Match whatever you set in the firmware Settings → MQTT page. |
 
 Nothing else to set up. The integration polls `/api/status` every 5 s as a safety net, but the primary update path is the WebSocket `/ws` push from the device, which lands in HA within ~500 ms of any state change on the firmware side.
 
@@ -127,8 +128,8 @@ What's on the card:
 - [x] Lovelace card bundled — no manual Resource registration step
 - [x] hassfest + HACS validation CI
 - [x] First HACS release tag
+- [x] MQTT bridge — subscribes to firmware topics when HA's MQTT integration is configured
 - [ ] Brand assets (icon/logo on the HACS card) — PR to home-assistant/brands pending
-- [ ] MQTT bridge — auto-detect HA's MQTT integration and use it for low-latency updates alongside REST/WS
 - [ ] Config-flow reauth on connection failure
 - [ ] Translations beyond English
 

@@ -11,8 +11,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 
 from .api import OpenLitterApi
-from .const import DEFAULT_PORT, DOMAIN
+from .const import (
+    CONF_MQTT_TOPIC_BASE,
+    CONF_USE_MQTT,
+    DEFAULT_MQTT_TOPIC_BASE,
+    DEFAULT_PORT,
+    DOMAIN,
+)
 from .coordinator import OpenLitterCoordinator, async_wait_for_first_refresh
+from .mqtt_bridge import OpenLitterMqttBridge
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,6 +51,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await async_wait_for_first_refresh(coordinator)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
+    # Optional MQTT bridge — if the user ticked Use MQTT and the HA MQTT
+    # integration is configured, subscribe to the firmware's topics so the
+    # coordinator gets updates over MQTT as well (last-write-wins with
+    # REST + WS). Bridge silently disables itself if MQTT isn't available.
+    if entry.data.get(CONF_USE_MQTT, False):
+        topic_base = entry.data.get(CONF_MQTT_TOPIC_BASE, DEFAULT_MQTT_TOPIC_BASE)
+        bridge = OpenLitterMqttBridge(hass, coordinator, topic_base)
+        if await bridge.async_start():
+            hass.data[DOMAIN][f"{entry.entry_id}_mqtt"] = bridge
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
@@ -82,6 +100,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         coordinator: OpenLitterCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
         await coordinator.async_stop()
+        bridge: OpenLitterMqttBridge | None = hass.data[DOMAIN].pop(
+            f"{entry.entry_id}_mqtt", None
+        )
+        if bridge:
+            await bridge.async_stop()
     return unloaded
 
 
