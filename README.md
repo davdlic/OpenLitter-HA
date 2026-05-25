@@ -129,7 +129,7 @@ What's on the card:
 - [x] hassfest + HACS validation CI
 - [x] First HACS release tag
 - [x] MQTT bridge — subscribes to firmware topics when HA's MQTT integration is configured
-- [ ] Brand assets (icon/logo on the HACS card) — PR to home-assistant/brands pending
+- [x] Brand assets bundled in `custom_components/openlitter/brand/` (HA 2026.3+ serves these via its proxy; no upstream PR needed)
 - [ ] Config-flow reauth on connection failure
 - [ ] Translations beyond English
 
