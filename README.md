@@ -24,6 +24,20 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 - **Rich entities** — state with a friendly label and the full history array as an attribute, weight, cycle count, raw HOME / DUMP / CAT sensor states, error binary sensor, six command buttons, and an Update entity.
 - **One-click firmware updates from HA** — the `update.openlitter_firmware` entity polls the firmware repo's GitHub releases, downloads both `firmware.bin` and `littlefs.bin`, and flashes them in sequence via the device's web update endpoint. No PC, no PlatformIO, no losing the Web UI.
 - **Bundled Lovelace card** — `custom:openlitter-card` is auto-registered when the integration loads; no manual Resource entry. Rotating globe SVG, state badge, three live sensor pills, recent-cycle stats, and the six command buttons in one card.
+- **HA Logbook + events** — every cycle, cat visit and error becomes a logbook line and a fireable bus event you can hook into automations (notify your phone, log to a spreadsheet, send a Telegram message — your call).
+- **Built-in diagnostics** — *Download diagnostics* on the device page bundles the live status, recent history, and on-device log buffer into a redacted JSON for bug reports.
+
+---
+
+## Screenshots
+
+| Lovelace card | Device page | Logbook |
+|---------------|-------------|---------|
+| ![Card](docs/images/card.png) | ![Device](docs/images/device.png) | ![Logbook](docs/images/logbook.png) |
+
+| Config flow | Reconfigure | Statistics |
+|-------------|-------------|------------|
+| ![Config flow](docs/images/config-flow.png) | ![Reconfigure](docs/images/reconfigure.png) | ![Statistics](docs/images/statistics.png) |
 
 ---
 
@@ -31,6 +45,7 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 
 | OpenLitter-HA | Firmware  | Home Assistant Core | Notes |
 |---------------|-----------|---------------------|-------|
+| 0.3.x         | ≥ v0.4.1  | ≥ 2024.4            | Logbook events, diagnostics, reauth + reconfigure |
 | 0.2.x         | ≥ v0.4.1  | ≥ 2024.4            | MQTT bridge, brand assets bundled (HA 2026.3+ proxies them) |
 | 0.1.x         | ≥ v0.4.0  | ≥ 2024.4            | REST + WS only, brand placeholder |
 
@@ -77,6 +92,15 @@ The config flow asks for:
 
 Nothing else to set up. The integration polls `/api/status` every 5 s as a safety net, but the primary update path is the WebSocket `/ws` push from the device, which lands in HA within ~500 ms of any state change on the firmware side.
 
+### Reconfigure / Reauth
+
+You can update host, port, OTA password or MQTT settings without removing and re-adding the integration (which would break any dashboards or automations referencing the entity ids):
+
+- **Reconfigure** — Settings → Devices & Services → OpenLitter → **Configure**. Shows the same form pre-filled with the current values.
+- **Reauth** — if the integration can't reach the device for ~1 minute (12 consecutive REST poll failures at the default 5 s interval) it surfaces a *Reauthenticate* notification. Most common cause: the ESP picked up a new DHCP lease and the IP changed. Open the notification, confirm the new host, done.
+
+Both flows hit `/api/status` to validate the new connection before saving, and reload the entry on success so the new values apply immediately.
+
 ---
 
 ## Entities
@@ -85,7 +109,7 @@ Nothing else to set up. The integration polls `/api/status` every 5 s as a safet
 |-------------------------------------------------------------|---------------------|-------|
 | `sensor.openlitter_state`                                   | sensor              | Friendly label (`Ready`, `Cleaning`, `Dumping`, `Leveling`, …). Attributes: `raw_state` (the internal enum name), `last_cycle` (Unix ts), `reset_in_progress`, full `history` array. |
 | `sensor.openlitter_weight`                                  | sensor (kg)         | Only published when the firmware reports the weight sensor enabled. |
-| `sensor.openlitter_cycle_count`                             | sensor              | Total completed cleaning cycles since the last counter reset. |
+| `sensor.openlitter_cycle_count`                             | sensor              | Total completed cleaning cycles since the last counter reset. `state_class: total_increasing` so it shows up in HA Statistics with per-day/week/month graphs out of the box. |
 | `sensor.openlitter_uptime`                                  | sensor (s)          | Device uptime in seconds. Disabled by default — enable in the entity registry if you want to chart it. |
 | `binary_sensor.openlitter_cat_present`                      | occupancy           | True while the cat is being detected (any of the configured sensors). |
 | `binary_sensor.openlitter_home_position`                    | sensor              | Live state of the HOME magnet sensor. Useful to verify wiring without USB serial. |
@@ -118,20 +142,86 @@ What's on the card:
 
 ---
 
-## Roadmap
+## Events & automations
 
-- [x] Repository skeleton + HACS metadata
-- [x] REST + WebSocket API client (`api.py`)
-- [x] DataUpdateCoordinator with WS push + 5 s REST poll fallback
-- [x] Config flow: zeroconf discovery + manual entry
-- [x] Sensor / binary_sensor / button / update platforms
-- [x] Update entity flashes **both** `firmware.bin` and `littlefs.bin` from each release
-- [x] Lovelace card bundled — no manual Resource registration step
-- [x] hassfest + HACS validation CI
-- [x] First HACS release tag
-- [x] MQTT bridge — subscribes to firmware topics when HA's MQTT integration is configured
-- [x] Brand assets bundled in `custom_components/openlitter/brand/` (HA 2026.3+ serves these via its proxy; no upstream PR needed)
-- [x] Config-flow reauth + reconfigure on connection failure
+The coordinator fires events on the HA bus whenever something meaningful happens on the device. They show up automatically in **Settings → Logbook** ("OpenLitter started a cleaning cycle", "OpenLitter detected a cat (3.42 kg)", ...) and you can also hook them in automations.
+
+| Event                          | Data fields                                                    | Fires when |
+|--------------------------------|----------------------------------------------------------------|------------|
+| `openlitter_cycle_started`     | `device_id`, `name`, `trigger_state`, `previous_state`         | The state machine enters any `CYCLING_*` state. |
+| `openlitter_cycle_completed`   | `device_id`, `name`, `cycle_count`, `last_cycle` (history row) | `cycle_count` increments. Only fires for real cleaning cycles — RESET and EMPTY are excluded by the firmware. |
+| `openlitter_cat_detected`      | `device_id`, `name`, `weight_kg` (if sensor enabled)           | `cat_present` flips false → true. |
+| `openlitter_cat_left`          | `device_id`, `name`, `duration_sec`                            | `cat_present` flips true → false. |
+| `openlitter_error`             | `device_id`, `name`, `state`                                   | `error` flips false → true. |
+
+The first event after a HA reload is suppressed so the integration doesn't replay phantom transitions on startup.
+
+### Example: notify when the cat uses the litter
+
+```yaml
+automation:
+  - alias: "Cat used the litter"
+    trigger:
+      - platform: event
+        event_type: openlitter_cat_left
+    condition:
+      - condition: template
+        value_template: "{{ trigger.event.data.duration_sec | int(0) > 10 }}"
+    action:
+      - service: notify.mobile_app_my_phone
+        data:
+          title: "🐱 OpenLitter"
+          message: >
+            Cat used the litter for
+            {{ trigger.event.data.duration_sec }}s.
+```
+
+### Example: alert on persistent error state
+
+```yaml
+automation:
+  - alias: "OpenLitter stuck in error"
+    trigger:
+      - platform: event
+        event_type: openlitter_error
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "OpenLitter — error"
+          message: >
+            Device entered error state from {{ trigger.event.data.state }}.
+            Check the Web UI or open Settings -> Devices & Services -> OpenLitter -> Download diagnostics.
+```
+
+---
+
+## Diagnostics
+
+On the device page (Settings → Devices & Services → OpenLitter → device → **⋮ → Download diagnostics**) you get a JSON file containing:
+
+- The config entry, with `host` and `ota_password` redacted.
+- The latest coordinator snapshot (current status + attributes).
+- The recent cycle history.
+- The on-device log buffer (best-effort — included as `[unavailable: ...]` if the device is unreachable at the moment, which is often *the* thing you want to report).
+
+This is the recommended attachment for [GitHub issue reports](https://github.com/davdlic/OpenLitter-HA/issues).
+
+---
+
+## Troubleshooting
+
+- **Card shows "Custom element doesn't exist"** — hard-refresh the browser (`Ctrl + F5`). The card bundles a version query string so this should only happen on the very first install after Restart.
+- **HOME / DUMP / CAT pills never go green** — confirm the corresponding `binary_sensor.openlitter_*` entities exist and update when you rotate the globe by hand. If the entity is there but never toggles, the wiring is the issue — verify on the firmware's Web UI first (it's the same source of truth).
+- **Update entity says "no update available" but a new firmware tag exists** — the entity polls `https://api.github.com/repos/davdlic/OpenLitter/releases/latest`. Make sure the GitHub release isn't marked as a *draft* or *pre-release*.
+- **Integration shows "Reauthenticate" right after setup** — the device went offline for over a minute. Confirm it's powered on and `ping openlitter.local` from the HA host. Click Reauthenticate and update the host if the IP has changed.
+
+---
+
+## Contributing
+
+PRs welcome. Open an issue for anything that looks wrong — please attach a diagnostics JSON (see [Diagnostics](#diagnostics)) when reporting bugs, it saves a lot of back-and-forth.
+
+For changes that span both firmware and the integration, please reference the relevant firmware version in the PR description so the [Compatibility](#compatibility) table can be kept honest.
 
 ---
 

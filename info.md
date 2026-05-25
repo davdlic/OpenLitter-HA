@@ -8,10 +8,15 @@ replaces the original board of a Litter Robot 1 / 2 / 3.
   integration also subscribes to the firmware's MQTT topics; last-write-wins
   across all three transports.
 - Auto-discovery via mDNS.
-- Rich entities: state, weight, cycle count, HOME / DUMP / CAT live sensors,
-  buttons for cycle / empty / reset / home / pause / resume / tare, and an
-  Update entity that flashes both firmware AND Web UI from a GitHub release
-  without any PC tools.
+- Rich entities: state, weight, cycle count (with long-term statistics),
+  HOME / DUMP / CAT live sensors, buttons for cycle / empty / reset / home /
+  pause / resume / tare, and an Update entity that flashes both firmware AND
+  Web UI from a GitHub release without any PC tools.
+- HA Logbook entries + bus events on every cycle, cat visit, and error.
+- Built-in diagnostics download for bug reports.
+- Reconfigure + reauth flows so changing the device IP doesn't mean removing
+  and re-adding the integration.
 - Ships with a Lovelace card (auto-registered, no manual Resource entry).
 
-See the README for full setup, entity list, and roadmap.
+See the README for full setup, entity list, automations examples, and
+screenshots.

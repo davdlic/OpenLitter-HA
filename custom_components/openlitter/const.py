@@ -63,6 +63,25 @@ STATE_LABELS: dict[str, str] = {
     "ERROR": "Error",
 }
 
+# Events fired on the HA bus for automations + the Logbook integration.
+# Naming: `{domain}_*` so they appear under "OpenLitter" in the logbook.
+EVENT_CYCLE_STARTED = f"{DOMAIN}_cycle_started"
+EVENT_CYCLE_COMPLETED = f"{DOMAIN}_cycle_completed"
+EVENT_CAT_DETECTED = f"{DOMAIN}_cat_detected"
+EVENT_CAT_LEFT = f"{DOMAIN}_cat_left"
+EVENT_ERROR = f"{DOMAIN}_error"
+
+# Set of CYCLING_* states used to detect "cycle started" transitions.
+CYCLING_STATES: frozenset[str] = frozenset({
+    "CYCLING_CCW",
+    "CYCLING_DUMP_PAUSE",
+    "CYCLING_CW",
+    "CYCLING_LEVEL_OVERSHOOT",
+    "CYCLING_LEVEL_RETURN",
+    "CYCLING_LEVEL_BACK_OVERSHOOT",
+    "CYCLING_LEVEL_BACK_RETURN",
+})
+
 # Command name -> POST endpoint
 COMMAND_PATHS: dict[str, str] = {
     "cycle": "/api/cycle",

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import timedelta
 from typing import Any
 
@@ -25,7 +26,21 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import OpenLitterApi, OpenLitterApiError
-from .const import DEFAULT_POLL_INTERVAL_SECONDS, DOMAIN
+from .const import (
+    ATTR_CAT_PRESENT,
+    ATTR_CYCLE_COUNT,
+    ATTR_ERROR,
+    ATTR_STATE,
+    ATTR_WEIGHT_KG,
+    CYCLING_STATES,
+    DEFAULT_POLL_INTERVAL_SECONDS,
+    DOMAIN,
+    EVENT_CAT_DETECTED,
+    EVENT_CAT_LEFT,
+    EVENT_CYCLE_COMPLETED,
+    EVENT_CYCLE_STARTED,
+    EVENT_ERROR,
+)
 
 # Number of consecutive REST poll failures before we ask HA to surface a
 # Reauthenticate notification. Each poll is DEFAULT_POLL_INTERVAL_SECONDS
@@ -55,6 +70,13 @@ class OpenLitterCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._history: list[dict[str, Any]] = []
         self._latest: dict[str, Any] = {}
         self._consecutive_failures = 0
+        # Track the "interesting" subset of the last snapshot so we can
+        # emit HA events on transitions (cat detected, cycle started, ...).
+        self._prev_state: str | None = None
+        self._prev_cat_present: bool | None = None
+        self._prev_cycle_count: int | None = None
+        self._prev_error: bool | None = None
+        self._cat_detected_at: float | None = None
 
     @property
     def history(self) -> list[dict[str, Any]]:
@@ -138,13 +160,105 @@ class OpenLitterCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # --- internals ---------------------------------------------------
 
     def _merge(self, fresh: dict[str, Any]) -> None:
-        """Last-write-wins merge into _latest."""
+        """Last-write-wins merge into _latest, then fire transition events.
+
+        Detecting transitions on every merge (REST / WS / MQTT) gives us a
+        single choke point — entities react to coordinator updates the same
+        way regardless of which transport produced them."""
         # Keep history separate so it doesn't bloat _latest if also
         # passed through MQTT.
         for k, v in fresh.items():
             if k == "history":
                 continue
             self._latest[k] = v
+        self._fire_transition_events()
+
+    def _fire_transition_events(self) -> None:
+        """Emit `openlitter_*` HA events whenever a meaningful field flips.
+
+        First call after a config-entry reload primes the prev_* fields and
+        emits nothing; subsequent calls compare new vs prev and fire."""
+        state = self._latest.get(ATTR_STATE)
+        cat = bool(self._latest.get(ATTR_CAT_PRESENT, False))
+        cycle_count = self._latest.get(ATTR_CYCLE_COUNT)
+        error = bool(self._latest.get(ATTR_ERROR, False))
+        weight = self._latest.get(ATTR_WEIGHT_KG)
+        now = time.time()
+
+        first_run = self._prev_state is None
+        # Prime on first run — without this, the integration would fire
+        # phantom "cycle started" / "cat detected" right after a HA reload
+        # if the device happens to be mid-cycle at the moment we connect.
+        if first_run:
+            self._prev_state = state
+            self._prev_cat_present = cat
+            self._prev_cycle_count = cycle_count if isinstance(cycle_count, int) else None
+            self._prev_error = error
+            return
+
+        bus = self.hass.bus
+        device_data = {"device_id": self.entry.entry_id, "name": self.entry.title}
+
+        # --- Cycle started: any non-cycling state -> a CYCLING_* state.
+        if (
+            state in CYCLING_STATES
+            and self._prev_state not in CYCLING_STATES
+        ):
+            bus.async_fire(
+                EVENT_CYCLE_STARTED,
+                {**device_data, "trigger_state": state, "previous_state": self._prev_state},
+            )
+
+        # --- Cycle completed: cycle_count incremented. Most reliable
+        # signal — the firmware only bumps it after a real cleaning cycle
+        # (skips RESETTING + EMPTYING). Includes the last history entry
+        # so automations can grab the duration without a second call.
+        if (
+            isinstance(cycle_count, int)
+            and isinstance(self._prev_cycle_count, int)
+            and cycle_count > self._prev_cycle_count
+        ):
+            last_entry = self._history[-1] if self._history else None
+            bus.async_fire(
+                EVENT_CYCLE_COMPLETED,
+                {
+                    **device_data,
+                    "cycle_count": cycle_count,
+                    "last_cycle": last_entry,
+                },
+            )
+
+        # --- Cat detected / left.
+        if cat and not self._prev_cat_present:
+            self._cat_detected_at = now
+            bus.async_fire(
+                EVENT_CAT_DETECTED,
+                {**device_data, "weight_kg": weight},
+            )
+        elif not cat and self._prev_cat_present:
+            duration = (
+                int(now - self._cat_detected_at)
+                if self._cat_detected_at is not None
+                else None
+            )
+            bus.async_fire(
+                EVENT_CAT_LEFT,
+                {**device_data, "duration_sec": duration},
+            )
+            self._cat_detected_at = None
+
+        # --- Error transition (only on the leading edge).
+        if error and not self._prev_error:
+            bus.async_fire(
+                EVENT_ERROR,
+                {**device_data, "state": state},
+            )
+
+        self._prev_state = state
+        self._prev_cat_present = cat
+        if isinstance(cycle_count, int):
+            self._prev_cycle_count = cycle_count
+        self._prev_error = error
 
 
 async def async_wait_for_first_refresh(coordinator: OpenLitterCoordinator) -> None:
