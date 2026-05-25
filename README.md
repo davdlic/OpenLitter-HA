@@ -29,9 +29,10 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 
 ## Compatibility
 
-| OpenLitter-HA | Firmware  | Home Assistant Core |
-|---------------|-----------|---------------------|
-| 0.1.x         | ≥ v0.4.0  | ≥ 2024.4            |
+| OpenLitter-HA | Firmware  | Home Assistant Core | Notes |
+|---------------|-----------|---------------------|-------|
+| 0.2.x         | ≥ v0.4.1  | ≥ 2024.4            | MQTT bridge, brand assets bundled (HA 2026.3+ proxies them) |
+| 0.1.x         | ≥ v0.4.0  | ≥ 2024.4            | REST + WS only, brand placeholder |
 
 Older firmware (v0.3.x or earlier) may work but is untested. The `update.openlitter_firmware` install button only ships full updates from v0.4.0 onwards (separate `/api/update?type=fs` endpoint).
 
