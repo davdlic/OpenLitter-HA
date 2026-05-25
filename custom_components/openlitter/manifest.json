@@ -9,7 +9,7 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/davdlic/OpenLitter-HA/issues",
   "requirements": [],
-  "version": "0.1.8",
+  "version": "0.1.9",
   "zeroconf": [
     {
       "type": "_http._tcp.local.",

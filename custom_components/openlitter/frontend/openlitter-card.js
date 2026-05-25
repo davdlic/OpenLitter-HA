@@ -280,10 +280,24 @@ class OpenLitterCard extends HTMLElement {
   }
 
   _press(cmd) {
+    const hass = this._hass;
+    if (!hass) return;
     const base = this._config.entity.split('.')[1].replace('_state', '');
-    const target = `button.${base}_${cmd}`;
-    if (!this._hass.states[target]) return;
-    this._hass.callService('button', 'press', { entity_id: target });
+    // Same fuzzy lookup as the sensors above — find the first
+    // button.{base}_* that contains the command keyword. Lets the
+    // existing button.openlitter_tare_weight entity_id work even after
+    // we renamed the friendly name to just "Tare".
+    const prefix = `button.${base}_`;
+    let target = null;
+    for (const eid in hass.states) {
+      if (eid.startsWith(prefix) && eid.indexOf(cmd) !== -1) {
+        target = eid;
+        break;
+      }
+    }
+    if (!target) target = `${prefix}${cmd}`;
+    if (!hass.states[target]) return;
+    hass.callService('button', 'press', { entity_id: target });
   }
 }
 
