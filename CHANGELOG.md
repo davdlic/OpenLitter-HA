@@ -4,6 +4,14 @@ All notable changes to this project will be documented here. The format
 loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] — 2026-06-01
+
+### Added
+- `BOOT_RECOVERY` mapped to the friendly label **Recovering** in the state
+  sensor and Lovelace card. Tracks the matching firmware v1.0.1, which
+  introduces a safe two-leg boot recovery to avoid re-dumping clean litter
+  after a mains glitch during a cycle.
+
 ## [1.0.0] — 2026-05-26
 
 First stable release. Entity ids, attributes, bus event names and the
@@ -87,6 +95,7 @@ sensor / binary_sensor / button / update platforms, bundled Lovelace card,
 Update entity that flashes both `firmware.bin` and `littlefs.bin` from
 each GitHub release.
 
+[1.0.1]: https://github.com/davdlic/OpenLitter-HA/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/davdlic/OpenLitter-HA/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/davdlic/OpenLitter-HA/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/davdlic/OpenLitter-HA/compare/v0.2.1...v0.2.2

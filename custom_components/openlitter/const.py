@@ -59,6 +59,7 @@ STATE_LABELS: dict[str, str] = {
     "EMPTYING": "Emptying",
     "EMPTYING_DUMP_PAUSE": "Dumping",
     "RESETTING": "Returning",
+    "BOOT_RECOVERY": "Recovering",
     "PAUSED": "Paused",
     "ERROR": "Error",
 }

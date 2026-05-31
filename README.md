@@ -46,7 +46,7 @@ Custom integration and Lovelace card for [OpenLitter](https://github.com/davdlic
 
 | OpenLitter-HA | Firmware  | Home Assistant Core | Notes |
 |---------------|-----------|---------------------|-------|
-| 1.0.x         | ≥ v1.0.0  | ≥ 2024.4            | First stable release. API frozen — entity ids, events, MQTT topics are public contract. |
+| 1.0.x         | ≥ v1.0.1  | ≥ 2024.4            | Stable. Pair with firmware ≥ v1.0.1 (safe boot recovery). API is public contract. |
 | 0.3.x         | ≥ v0.4.1  | ≥ 2024.4            | Logbook events, diagnostics, reauth + reconfigure |
 | 0.2.x         | ≥ v0.4.1  | ≥ 2024.4            | MQTT bridge, brand assets bundled (HA 2026.3+ proxies them) |
 | 0.1.x         | ≥ v0.4.0  | ≥ 2024.4            | REST + WS only, brand placeholder |
