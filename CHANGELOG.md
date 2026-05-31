@@ -4,6 +4,18 @@ All notable changes to this project will be documented here. The format
 loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] — 2026-06-01
+
+### Changed
+- Compatibility table updated to pair with firmware v1.0.2, which
+  introduces zone-aware boot recovery (covers leveling-phase power cuts
+  that the firmware v1.0.1 fix didn't catch) and falls back to a full
+  reset cycle when no globe-position info is available.
+
+### Notes
+- No code changes on the integration side — the `BOOT_RECOVERY` state
+  label added in v1.0.1 continues to render correctly. Pure version pin.
+
 ## [1.0.1] — 2026-06-01
 
 ### Added
@@ -95,6 +107,7 @@ sensor / binary_sensor / button / update platforms, bundled Lovelace card,
 Update entity that flashes both `firmware.bin` and `littlefs.bin` from
 each GitHub release.
 
+[1.0.2]: https://github.com/davdlic/OpenLitter-HA/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/davdlic/OpenLitter-HA/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/davdlic/OpenLitter-HA/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/davdlic/OpenLitter-HA/compare/v0.2.2...v0.3.0
